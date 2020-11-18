@@ -14,6 +14,8 @@
 //! this repository! Many of them recommend running this as a simple "hook up
 //! stdin/stdout to a server" to get up and running.
 
+//!     cargo run --example print_each_packet_line
+//!     cargo run --example connect_line 127.0.0.1:8081
 #![warn(rust_2018_idioms)]
 
 

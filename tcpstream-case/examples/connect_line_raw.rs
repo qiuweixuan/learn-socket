@@ -14,21 +14,23 @@
 //! this repository! Many of them recommend running this as a simple "hook up
 //! stdin/stdout to a server" to get up and running.
 
-//!     cargo run --example print_each_packet
-//!     cargo run --example connect 127.0.0.1:8080
+//!     cargo run --example print_each_packet_line
+//!     cargo run --example connect_line_raw 127.0.0.1:8081
 
 #![warn(rust_2018_idioms)]
 
 use futures::StreamExt;
 use tokio::io;
 use tokio::prelude::*;
-use tokio_util::codec::{FramedRead, LinesCodec};
+use tokio_util::codec::{FramedRead, LinesCodec,Encoder};
 
 use std::env;
 use std::error::Error;
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
 use tokio::try_join;
+
+use bytes::{BytesMut};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -44,20 +46,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server_sock = TcpStream::connect(addr).await?;
     let (read_half, mut write_half) = server_sock.into_split();
 
+    // stdin -> write_half  task
     let read_join = tokio::spawn(async move {
         let mut stdin = FramedRead::new(io::stdin(), LinesCodec::new());
+        let mut write_codec = LinesCodec::new();
+
         while let Some(message) = stdin.next().await {
             match message {
-                // Ok(bytes) => { println!("bytes: {:x?}  ", bytes.as_bytes()) },
-                Ok(mut bytes) => {
-                    // println!("bytes: {:?}  ", bytes);
-                    bytes.push('\n');
-                    write_half.write_all(bytes.as_bytes()).await.unwrap();
-                }
+                // Ok(mut bytes) => {
+                //     bytes.push('\n');
+                //     write_half.write_all(bytes.as_bytes()).await.unwrap();
+                // }
+                Ok(bytes) => {
+                    let mut buf = BytesMut::new();
+                    write_codec.encode(bytes, &mut buf).unwrap();
+                    write_half.write_all(&buf[..]).await.unwrap();
+                },
                 Err(err) => println!("closed with error: {:?}", err),
             }
         }
     });
+
+    // read_half -> stdout  task
     let write_join = tokio::spawn(async move {
         let mut read_server = FramedRead::new(read_half, LinesCodec::new());
         while let Some(message) = read_server.next().await {

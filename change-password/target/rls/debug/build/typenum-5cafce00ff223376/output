@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/mnt/e/program/rust-program/learn-program/socket/change-password/target/rls/debug/build/typenum-5cafce00ff223376/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/mnt/e/program/rust-program/learn-program/socket/change-password/target/rls/debug/build/typenum-5cafce00ff223376/out/op.rs
